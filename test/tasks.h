@@ -11,10 +11,10 @@ void task2(void *args);
 void task3(void *args);
 
 typedef struct{
-    SemaphoreHandle_t sem;
+    SemaphoreHandle_t sem;      // semaphore for priority inversion test
 
-    TaskFunction_t t1_fn;
-    UBaseType_t t1_priority;
+    TaskFunction_t t1_fn;       // function pointer for task
+    UBaseType_t t1_priority;    // priority for task
 
     TaskFunction_t t2_fn;
     UBaseType_t t2_priority;

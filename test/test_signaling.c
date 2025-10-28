@@ -45,7 +45,7 @@ void run_test(void *params){
     printf("Task 3 time: %llu\n", t3);
 }
 
-void priority_inversion(void){
+void priority_inversion(void){  // Most of the test cases should be similar to this
     SemaphoreHandle_t sem;
     sem = xSemaphoreCreateBinary();
 
