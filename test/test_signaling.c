@@ -25,17 +25,24 @@ void test_task(void *params) {
         SemaphoreHandle_t sem;
         sem = xSemaphoreCreateBinary();
 
-        void* args = sem;
+        TaskArgs args = {
+            .sem = sem,
+            .t1_fn = task1,
+            .t1_priority = tskIDLE_PRIORITY + 5,
+            .t2_fn = task2,
+            .t2_priority = tskIDLE_PRIORITY + 1,
+            .t3_fn = task3,
+            .t3_priority = tskIDLE_PRIORITY + 2
+        };
 
-        // higher priority thread
         TaskHandle_t task_handle_1;
-        xTaskCreate(task1, "task 1", configMINIMAL_STACK_SIZE, (void*)&args, tskIDLE_PRIORITY+5, &task_handle_1);
+        xTaskCreate(args.t1_fn, "task 1", configMINIMAL_STACK_SIZE, (void*)&args, tskIDLE_PRIORITY+5, &task_handle_1);
 
         TaskHandle_t task_handle_2;
-        xTaskCreate(task2, "task 2", configMINIMAL_STACK_SIZE, (void*)&args, tskIDLE_PRIORITY+1, &task_handle_2);
+        xTaskCreate(args.t2_fn, "task 2", configMINIMAL_STACK_SIZE, (void*)&args, tskIDLE_PRIORITY+1, &task_handle_2);
 
         TaskHandle_t task_handle_3;
-        xTaskCreate(task3, "task 3", configMINIMAL_STACK_SIZE, (void*)&args, tskIDLE_PRIORITY+2, &task_handle_3);
+        xTaskCreate(args.t3_fn, "task 3", configMINIMAL_STACK_SIZE, (void*)&args, tskIDLE_PRIORITY+2, &task_handle_3);
 
         vTaskDelay(pdMS_TO_TICKS(1000));
 
