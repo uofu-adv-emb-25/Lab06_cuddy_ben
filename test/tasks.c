@@ -2,7 +2,7 @@
 
 void task1(void *args)
 {
-    vTaskDelay(pdMS_TO_TICKS(500));
+    busy_wait_ms(100);
     SemaphoreHandle_t semaphore = *(SemaphoreHandle_t *) args;
     xSemaphoreTake(semaphore, portMAX_DELAY);
 }
