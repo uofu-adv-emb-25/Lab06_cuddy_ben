@@ -10,21 +10,22 @@
 #include "tasks.h"
 #include <unity.h>
 #include "unity_config.h"
+//#include "projdefs.h"
 
 void setUp(void) {}
 void tearDown(void) {}
 
-void run_test(void *params){
+void run_test(void *params, TaskInfo *out_data){
     TaskArgs *args = (TaskArgs *) params;
 
     TaskHandle_t task_handle_1;
-    xTaskCreate(args->t1_fn, "task 1", configMINIMAL_STACK_SIZE, (void*)args, tskIDLE_PRIORITY+5, &task_handle_1);
+    xTaskCreate(args->t1_fn, "task 1", configMINIMAL_STACK_SIZE, (void*)args, args->t1_priority, &task_handle_1);
 
     TaskHandle_t task_handle_2;
-    xTaskCreate(args->t2_fn, "task 2", configMINIMAL_STACK_SIZE, (void*)args, tskIDLE_PRIORITY+1, &task_handle_2);
+    xTaskCreate(args->t2_fn, "task 2", configMINIMAL_STACK_SIZE, (void*)args, args->t2_priority, &task_handle_2);
 
     TaskHandle_t task_handle_3;
-    xTaskCreate(args->t3_fn, "task 3", configMINIMAL_STACK_SIZE, (void*)args, tskIDLE_PRIORITY+2, &task_handle_3);
+    xTaskCreate(args->t3_fn, "task 3", configMINIMAL_STACK_SIZE, (void*)args, args->t3_priority, &task_handle_3);
 
     vTaskDelay(pdMS_TO_TICKS(1000));
 
@@ -40,15 +41,23 @@ void run_test(void *params){
     t2 = ulTaskGetRunTimeCounter(task_handle_2);
     t3 = ulTaskGetRunTimeCounter(task_handle_3);
 
+    out_data->t1 = t1;
+    out_data->t2 = t2;
+    out_data->t3 = t3;
+
     printf("Task 1 time: %llu\n", t1);
     printf("Task 2 time: %llu\n", t2);
     printf("Task 3 time: %llu\n", t3);
+
+    vTaskDelete(task_handle_1);
+    vTaskDelete(task_handle_2);
+    vTaskDelete(task_handle_3);
 }
 
 void priority_inversion(void){  // Most of the test cases should be similar to this
     SemaphoreHandle_t sem;
     sem = xSemaphoreCreateBinary();
-
+    
     TaskArgs args = {
         .sem = sem,
         .t1_fn = task1,
@@ -59,7 +68,40 @@ void priority_inversion(void){  // Most of the test cases should be similar to t
         .t3_priority = tskIDLE_PRIORITY + 2
     };
 
-    run_test((void*)&args);
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+
+    TEST_ASSERT_GREATER_THAN(output.t2, output.t1);
+    TEST_ASSERT_GREATER_THAN(output.t3, output.t1);
+
+    vSemaphoreDelete(sem);
+}
+
+void mutex_semaphore(void)
+{
+    SemaphoreHandle_t sem;
+    sem = xSemaphoreCreateMutex();
+    xSemaphoreGive(sem);
+    
+    TaskArgs args = {
+        .sem = sem,
+        .t1_fn = task1,
+        .t1_priority = tskIDLE_PRIORITY + 5,
+        .t2_fn = task2,
+        .t2_priority = tskIDLE_PRIORITY + 1,
+        .t3_fn = task3,
+        .t3_priority = tskIDLE_PRIORITY + 2
+    };
+
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+
+    TEST_ASSERT_GREATER_THAN(output.t2, output.t1);
+    TEST_ASSERT_GREATER_THAN(output.t3, output.t1);
+
+    vSemaphoreDelete(sem);
 }
 
 void test_task(__unused void *params) {
@@ -67,8 +109,9 @@ void test_task(__unused void *params) {
     UNITY_BEGIN();
     // Run Tests
     // Activity 0
-    RUN_TEST(priority_inversion);
+    //RUN_TEST(priority_inversion);
     // Activity 1
+    RUN_TEST(mutex_semaphore);
     // Activity 2
     // -- Same Priority --
     // Both busy_busy
@@ -90,7 +133,7 @@ int main(void)
 
 
     sleep_ms(10000);
-    printf("Launching teset runner\n");
+    printf("Launching test runner\n");
 
 
     TaskHandle_t TestTaskHandle;

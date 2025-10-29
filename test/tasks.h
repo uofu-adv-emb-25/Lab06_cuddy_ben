@@ -22,3 +22,11 @@ typedef struct{
     TaskFunction_t t3_fn;
     UBaseType_t t3_priority;
 } TaskArgs;
+
+typedef struct 
+{
+    uint64_t t1;
+    uint64_t t2;
+    uint64_t t3;
+    
+} TaskInfo;
