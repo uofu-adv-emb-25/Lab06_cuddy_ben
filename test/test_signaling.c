@@ -62,35 +62,37 @@ void priority_inversion(void){  // Most of the test cases should be similar to t
     run_test((void*)&args);
 }
 
-void test_task(void *params) {
-    while(1){
-        UNITY_BEGIN();
-        // Run Tests
-
-        // Activity 0
-        RUN_TEST(priority_inversion);
-
-        // Activity 1
-
-        // Activity 2
-
-        // -- Same Priority --
-        // Both busy_busy
-        // Both busy_yield
-        // One busy_busy, one busy_yield
-
-        // -- Different Priority --
-        // Both busy_busy
-        // Both busy_yield
-        // One busy_busy, one busy_yield
-        UNITY_END();
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+void test_task(__unused void *params) {
+    
+    UNITY_BEGIN();
+    // Run Tests
+    // Activity 0
+    RUN_TEST(priority_inversion);
+    // Activity 1
+    // Activity 2
+    // -- Same Priority --
+    // Both busy_busy
+    // Both busy_yield
+    // One busy_busy, one busy_yield
+    // -- Different Priority --
+    // Both busy_busy
+    // Both busy_yield
+    // One busy_busy, one busy_yield
+    UNITY_END();
+    for(;;) { vTaskDelay(2000); }
 }
 
 int main(void)
 {
     stdio_init_all();
+
+    hard_assert(cyw43_arch_init() == PICO_OK);
+
+
+    sleep_ms(10000);
+    printf("Launching teset runner\n");
+
+
     TaskHandle_t TestTaskHandle;
     xTaskCreate(test_task, "test_task", configMINIMAL_STACK_SIZE, NULL, configMAX_PRIORITIES - 1, &TestTaskHandle);
     vTaskStartScheduler();
