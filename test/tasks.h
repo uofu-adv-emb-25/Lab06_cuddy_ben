@@ -21,6 +21,8 @@ typedef struct{
 
     TaskFunction_t t3_fn;
     UBaseType_t t3_priority;
+
+    QueueHandle_t statQ;
 } TaskArgs;
 
 typedef struct 

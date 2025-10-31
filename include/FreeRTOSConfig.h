@@ -11,4 +11,7 @@ uint64_t time_us_64(void); // forward declaration
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS()
 #define portGET_RUN_TIME_COUNTER_VALUE()            time_us_64()
 
+#define configUSE_PREEMPTION 1
+#define configUSE_TIME_SLICING 1
+
 #endif
