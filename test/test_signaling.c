@@ -19,8 +19,8 @@ void tearDown(void) {}
 void run_test(void *params, TaskInfo *out_data){
     TaskArgs *args = (TaskArgs *) params;
 
-    //TaskHandle_t task_handle_1;
-    //xTaskCreate(args->t1_fn, "task 1", configMINIMAL_STACK_SIZE, (void*)args, args->t1_priority, &task_handle_1);
+    TaskHandle_t task_handle_1;
+    xTaskCreate(args->t1_fn, "task 1", configMINIMAL_STACK_SIZE, (void*)args, args->t1_priority, &task_handle_1);
 
     TaskHandle_t task_handle_2;
     xTaskCreate(args->t2_fn, "task 2", configMINIMAL_STACK_SIZE, (void*)args, args->t2_priority, &task_handle_2);
@@ -32,19 +32,17 @@ void run_test(void *params, TaskInfo *out_data){
     
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    printf("here\n");
-
     TaskStatus_t stat_1, stat_2, stat_3;
     
-    //vTaskGetInfo(task_handle_1, &stat_1, pdTRUE, eInvalid);
-    //vTaskGetInfo(task_handle_2, &stat_2, pdTRUE, eInvalid);
-    //vTaskGetInfo(task_handle_3, &stat_3, pdTRUE, eInvalid);
+    vTaskGetInfo(task_handle_1, &stat_1, pdTRUE, eInvalid);
+    vTaskGetInfo(task_handle_2, &stat_2, pdTRUE, eInvalid);
+    vTaskGetInfo(task_handle_3, &stat_3, pdTRUE, eInvalid);
 
     uint64_t t1 = 0, t2 = 0, t3 = 0;
 
-    //t1 = ulTaskGetRunTimeCounter(task_handle_1);
-    //t2 = ulTaskGetRunTimeCounter(task_handle_2);
-    //t3 = ulTaskGetRunTimeCounter(task_handle_3);
+    t1 = ulTaskGetRunTimeCounter(task_handle_1);
+    t2 = ulTaskGetRunTimeCounter(task_handle_2);
+    t3 = ulTaskGetRunTimeCounter(task_handle_3);
 
     out_data->t1 = t1;
     out_data->t2 = t2;
@@ -54,9 +52,9 @@ void run_test(void *params, TaskInfo *out_data){
     printf("Task 2 time: %llu\n", t2);
     printf("Task 3 time: %llu\n", t3);
 
-    //vTaskDelete(task_handle_1);
+    vTaskDelete(task_handle_1);
     vTaskDelete(task_handle_2);
-    //vTaskDelete(task_handle_3);
+    vTaskDelete(task_handle_3);
 }
 
 void priority_inversion(void){  // Most of the test cases should be similar to this
@@ -121,7 +119,7 @@ void test_task(__unused void *params) {
     UNITY_BEGIN();
     // Run Tests
     // Activity 0
-    //RUN_TEST(priority_inversion);
+    RUN_TEST(priority_inversion);
     // Activity 1
     RUN_TEST(mutex_semaphore);
     // Activity 2
