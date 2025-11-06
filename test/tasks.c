@@ -44,3 +44,13 @@ void task3(void *args)
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
+
+void busy_busy(void *args){
+    for (int i = 0; ;i++);
+}
+
+void busy_yield(void *args){
+    for (int i = 0; ;i++){
+        taskYIELD();
+    }
+}

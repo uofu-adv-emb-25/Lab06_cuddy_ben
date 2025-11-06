@@ -9,6 +9,8 @@
 void task1(void *args);
 void task2(void *args);
 void task3(void *args);
+void busy_busy(void *args);
+void busy_yield(void *args);
 
 typedef struct{
     SemaphoreHandle_t sem;      // semaphore for priority inversion test

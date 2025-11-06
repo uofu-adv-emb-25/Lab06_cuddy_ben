@@ -49,3 +49,16 @@ find_program(PICOTOOL picotool)
 
 add_custom_target(flash_test ${PICOTOOL} load -f $<TARGET_FILE:mytest> DEPENDS mytest)
 add_custom_target(openocd_test ${OPENOCD} -s ${OPENOCD_PATH} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c 'adapter speed 5000; program "$<TARGET_FILE:mytest>" verify reset exit' DEPENDS mytest)
+
+# Ignore this one, formatted for mac
+add_custom_target(flash_mytest
+  COMMAND ${OPENOCD} -s ${OPENOCD_PATH}
+          -f interface/cmsis-dap.cfg
+          -f target/rp2040.cfg
+          -c "adapter speed 5000"
+          -c "init"
+          -c "reset halt"
+          -c "program {$<TARGET_FILE:mytest>} verify reset exit"
+  DEPENDS mytest
+  USES_TERMINAL
+)

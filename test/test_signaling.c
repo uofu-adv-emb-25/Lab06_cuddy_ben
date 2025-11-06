@@ -57,7 +57,7 @@ void run_test(void *params, TaskInfo *out_data){
     vTaskDelete(task_handle_3);
 }
 
-void priority_inversion(void){  // Most of the test cases should be similar to this
+void priority_inversion(void){
     SemaphoreHandle_t sem;
     sem = xSemaphoreCreateBinary();
     xSemaphoreGive(sem);
@@ -114,6 +114,120 @@ void mutex_semaphore(void)
     vSemaphoreDelete(sem);
 }
 
+void same_busy_busy(void)
+{
+    statQ = xQueueCreate(2, sizeof(uint8_t));
+
+    TaskArgs args = {
+        .t1_fn = busy_busy,
+        .t1_priority = tskIDLE_PRIORITY + 2,
+        .t2_fn = busy_busy,
+        .t2_priority = tskIDLE_PRIORITY + 2,
+        .statQ = statQ,
+    };
+
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+    // Add assertions here
+    // ...
+}
+
+void same_yield_yield(void)
+{
+    statQ = xQueueCreate(2, sizeof(uint8_t));
+
+    TaskArgs args = {
+        .t1_fn = busy_yield,
+        .t1_priority = tskIDLE_PRIORITY + 2,
+        .t2_fn = busy_yield,
+        .t2_priority = tskIDLE_PRIORITY + 2,
+        .statQ = statQ,
+    };
+
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+    // Add assertions here
+    // ...
+}
+
+void same_busy_yield(void)
+{
+    statQ = xQueueCreate(2, sizeof(uint8_t));
+
+    TaskArgs args = {
+        .t1_fn = busy_busy,
+        .t1_priority = tskIDLE_PRIORITY + 2,
+        .t2_fn = busy_yield,
+        .t2_priority = tskIDLE_PRIORITY + 2,
+        .statQ = statQ,
+    };
+
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+    // Add assertions here
+    // ...
+}
+
+void diff_busy_high(void) // Higher priority starts first
+{
+    statQ = xQueueCreate(2, sizeof(uint8_t));
+
+    TaskArgs args = {
+        .t1_fn = busy_busy,
+        .t1_priority = tskIDLE_PRIORITY + 2,
+        .t2_fn = busy_busy,
+        .t2_priority = tskIDLE_PRIORITY + 1,
+        .statQ = statQ,
+    };
+
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+    // Add assertions here
+    // ...
+}
+
+void diff_busy_low(void)  // Lower priority starts first
+{
+    statQ = xQueueCreate(2, sizeof(uint8_t));
+
+    TaskArgs args = {
+        .t1_fn = busy_yield,
+        .t1_priority = tskIDLE_PRIORITY + 1,
+        .t2_fn = busy_yield,
+        .t2_priority = tskIDLE_PRIORITY + 2,
+        .statQ = statQ,
+    };
+
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+    // Add assertions here
+    // ...
+}
+
+void diff_busy_yield(void)
+{
+    statQ = xQueueCreate(2, sizeof(uint8_t));
+
+    TaskArgs args = {
+        .t1_fn = busy_busy,
+        .t1_priority = tskIDLE_PRIORITY + 1,
+        .t2_fn = busy_yield,
+        .t2_priority = tskIDLE_PRIORITY + 2,
+        .statQ = statQ,
+    };
+
+    TaskInfo output = {};
+
+    run_test((void*)&args, &output);
+    // Add assertions here
+    // ...
+}
+
 void test_task(__unused void *params) {
     
     UNITY_BEGIN();
@@ -125,12 +239,17 @@ void test_task(__unused void *params) {
     // Activity 2
     // -- Same Priority --
     // Both busy_busy
+    // RUN_TEST(same_busy_busy);
     // Both busy_yield
+    // RUN_TEST(same_yield_yield);
     // One busy_busy, one busy_yield
+    // RUN_TEST(same_busy_yield);
     // -- Different Priority --
     // Both busy_busy
-    // Both busy_yield
+    // RUN_TEST(diff_busy_high); // Higher priority starts first
+    // RUN_TEST(diff_busy_low);  // Lower priority starts first
     // One busy_busy, one busy_yield
+    // RUN_TEST(diff_busy_yield);
     UNITY_END();
     for(;;) { vTaskDelay(2000); }
 }
@@ -140,7 +259,6 @@ int main(void)
     stdio_init_all();
 
     hard_assert(cyw43_arch_init() == PICO_OK);
-
 
     sleep_ms(10000);
     printf("Launching test runner\n");
