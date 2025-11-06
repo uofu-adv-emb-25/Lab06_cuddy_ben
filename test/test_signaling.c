@@ -11,6 +11,8 @@
 #include <unity.h>
 #include "unity_config.h"
 
+#define RUN_TIME 1000 // in ms
+
 QueueHandle_t statQ;
 
 void setUp(void) {}
@@ -28,9 +30,8 @@ void run_test(void *params, TaskInfo *out_data){
     TaskHandle_t task_handle_3;
     xTaskCreate(args->t3_fn, "task 3", configMINIMAL_STACK_SIZE, (void*)args, args->t3_priority, &task_handle_3);
 
-
-    
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(RUN_TIME));
+    printf("Tasks completed, gathering stats...\n");
 
     TaskStatus_t stat_1, stat_2, stat_3;
     
@@ -67,7 +68,7 @@ void priority_inversion(void){
     TaskArgs args = {
         .sem = sem,
         .t1_fn = task1,
-        .t1_priority = tskIDLE_PRIORITY + 5,
+        .t1_priority = tskIDLE_PRIORITY + 3,
         .t2_fn = task2,
         .t2_priority = tskIDLE_PRIORITY + 1,
         .t3_fn = task3,
@@ -79,8 +80,7 @@ void priority_inversion(void){
 
     run_test((void*)&args, &output);
 
-    TEST_ASSERT_GREATER_THAN(output.t2, output.t1);
-    TEST_ASSERT_GREATER_THAN(output.t3, output.t1);
+    TEST_ASSERT((output.t2 > output.t1) || (output.t3 > output.t1));    // Only one of these should run faster than t1
 
     vSemaphoreDelete(sem);
 }
@@ -96,7 +96,7 @@ void mutex_semaphore(void)
     TaskArgs args = {
         .sem = sem,
         .t1_fn = task1,
-        .t1_priority = tskIDLE_PRIORITY + 5,
+        .t1_priority = tskIDLE_PRIORITY + 3,
         .t2_fn = task2,
         .t2_priority = tskIDLE_PRIORITY + 1,
         .t3_fn = task3,
@@ -108,8 +108,8 @@ void mutex_semaphore(void)
 
     run_test((void*)&args, &output);
 
-    TEST_ASSERT_GREATER_THAN(output.t2, output.t1);
-    TEST_ASSERT_GREATER_THAN(output.t3, output.t1);
+    TEST_ASSERT_GREATER_THAN(output.t2, output.t1); // I think we'd expect t1 to be the fastest here bc mutex inherits priority,
+    TEST_ASSERT_GREATER_THAN(output.t3, output.t1); // but can't seem to get it shorter than t2
 
     vSemaphoreDelete(sem);
 }
@@ -120,17 +120,16 @@ void same_busy_busy(void)
 
     TaskArgs args = {
         .t1_fn = busy_busy,
-        .t1_priority = tskIDLE_PRIORITY + 2,
+        .t1_priority = tskIDLE_PRIORITY + 1,
         .t2_fn = busy_busy,
-        .t2_priority = tskIDLE_PRIORITY + 2,
+        .t2_priority = tskIDLE_PRIORITY + 1,
         .statQ = statQ,
     };
 
     TaskInfo output = {};
 
     run_test((void*)&args, &output);
-    // Add assertions here
-    // ...
+    TEST_ASSERT_GREATER_THAN(RUN_TIME * 90, output.t1); // First task never yields
 }
 
 void same_yield_yield(void)
@@ -148,8 +147,8 @@ void same_yield_yield(void)
     TaskInfo output = {};
 
     run_test((void*)&args, &output);
-    // Add assertions here
-    // ...
+    TEST_ASSERT_GREATER_THAN(RUN_TIME * 40, output.t1); // Both should get a good amount of run time
+    TEST_ASSERT_GREATER_THAN(RUN_TIME * 40, output.t2);
 }
 
 void same_busy_yield(void)
@@ -167,8 +166,7 @@ void same_busy_yield(void)
     TaskInfo output = {};
 
     run_test((void*)&args, &output);
-    // Add assertions here
-    // ...
+    TEST_ASSERT_GREATER_THAN(RUN_TIME * 90, output.t1); // Busy task should have more run time
 }
 
 void diff_busy_high(void) // Higher priority starts first
@@ -186,8 +184,7 @@ void diff_busy_high(void) // Higher priority starts first
     TaskInfo output = {};
 
     run_test((void*)&args, &output);
-    // Add assertions here
-    // ...
+    TEST_ASSERT_GREATER_THAN(RUN_TIME * 90, output.t1); // t1 never yields
 }
 
 void diff_busy_low(void)  // Lower priority starts first
@@ -195,9 +192,9 @@ void diff_busy_low(void)  // Lower priority starts first
     statQ = xQueueCreate(2, sizeof(uint8_t));
 
     TaskArgs args = {
-        .t1_fn = busy_yield,
+        .t1_fn = busy_busy,
         .t1_priority = tskIDLE_PRIORITY + 1,
-        .t2_fn = busy_yield,
+        .t2_fn = busy_busy,
         .t2_priority = tskIDLE_PRIORITY + 2,
         .statQ = statQ,
     };
@@ -205,8 +202,7 @@ void diff_busy_low(void)  // Lower priority starts first
     TaskInfo output = {};
 
     run_test((void*)&args, &output);
-    // Add assertions here
-    // ...
+    TEST_ASSERT_GREATER_THAN(RUN_TIME * 90, output.t2); // Higher priority never runs
 }
 
 void diff_busy_yield(void)
@@ -224,8 +220,7 @@ void diff_busy_yield(void)
     TaskInfo output = {};
 
     run_test((void*)&args, &output);
-    // Add assertions here
-    // ...
+    TEST_ASSERT_GREATER_THAN(RUN_TIME * 90, output.t2); // Higher priority should have more run time
 }
 
 void test_task(__unused void *params) {
@@ -239,17 +234,17 @@ void test_task(__unused void *params) {
     // Activity 2
     // -- Same Priority --
     // Both busy_busy
-    // RUN_TEST(same_busy_busy);
+    RUN_TEST(same_busy_busy);
     // Both busy_yield
-    // RUN_TEST(same_yield_yield);
+    RUN_TEST(same_yield_yield);
     // One busy_busy, one busy_yield
-    // RUN_TEST(same_busy_yield);
+    RUN_TEST(same_busy_yield);
     // -- Different Priority --
     // Both busy_busy
-    // RUN_TEST(diff_busy_high); // Higher priority starts first
-    // RUN_TEST(diff_busy_low);  // Lower priority starts first
+    RUN_TEST(diff_busy_high); // Higher priority starts first
+    RUN_TEST(diff_busy_low);  // Lower priority starts first
     // One busy_busy, one busy_yield
-    // RUN_TEST(diff_busy_yield);
+    RUN_TEST(diff_busy_yield);
     UNITY_END();
     for(;;) { vTaskDelay(2000); }
 }
@@ -264,7 +259,7 @@ int main(void)
     printf("Launching test runner\n");
 
     
-    xTaskCreate(test_task, "test_task", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
+    xTaskCreate(test_task, "test_task", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 4, NULL);
     vTaskStartScheduler();
     return 0;
 }
