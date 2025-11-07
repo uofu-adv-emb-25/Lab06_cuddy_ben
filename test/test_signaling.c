@@ -13,7 +13,15 @@
 
 #define RUN_TIME 1000 // in ms
 
+#define DEBUG 1
+#if DEBUG
+#define dprintf(...) printf(__VA_ARGS__)
+#else
+#define dprintf(...)
+#endif
+
 QueueHandle_t statQ;
+
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -21,17 +29,20 @@ void tearDown(void) {}
 void run_test(void *params, TaskInfo *out_data){
     TaskArgs *args = (TaskArgs *) params;
 
-    TaskHandle_t task_handle_1;
-    xTaskCreate(args->t1_fn, "task 1", configMINIMAL_STACK_SIZE, (void*)args, args->t1_priority, &task_handle_1);
-
     TaskHandle_t task_handle_2;
     xTaskCreate(args->t2_fn, "task 2", configMINIMAL_STACK_SIZE, (void*)args, args->t2_priority, &task_handle_2);
 
+    vTaskDelay(pdMS_TO_TICKS(5));
+
+    TaskHandle_t task_handle_1;
+    xTaskCreate(args->t1_fn, "task 1", configMINIMAL_STACK_SIZE, (void*)args, args->t1_priority, &task_handle_1);
+    
     TaskHandle_t task_handle_3;
     xTaskCreate(args->t3_fn, "task 3", configMINIMAL_STACK_SIZE, (void*)args, args->t3_priority, &task_handle_3);
 
+
     vTaskDelay(pdMS_TO_TICKS(RUN_TIME));
-    printf("Tasks completed, gathering stats...\n");
+    dprintf("Tasks completed, gathering stats...\n");
 
     TaskStatus_t stat_1, stat_2, stat_3;
     
@@ -49,9 +60,9 @@ void run_test(void *params, TaskInfo *out_data){
     out_data->t2 = t2;
     out_data->t3 = t3;
 
-    printf("Task 1 time: %llu\n", t1);
-    printf("Task 2 time: %llu\n", t2);
-    printf("Task 3 time: %llu\n", t3);
+    dprintf("Task 1 time: %llu\n", t1);
+    dprintf("Task 2 time: %llu\n", t2);
+    dprintf("Task 3 time: %llu\n", t3);
 
     vTaskDelete(task_handle_1);
     vTaskDelete(task_handle_2);
@@ -63,7 +74,6 @@ void priority_inversion(void){
     sem = xSemaphoreCreateBinary();
     xSemaphoreGive(sem);
 
-    statQ = xQueueCreate(3, sizeof(uint8_t));
     
     TaskArgs args = {
         .sem = sem,
@@ -73,7 +83,6 @@ void priority_inversion(void){
         .t2_priority = tskIDLE_PRIORITY + 1,
         .t3_fn = task3,
         .t3_priority = tskIDLE_PRIORITY + 2,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
@@ -91,8 +100,7 @@ void mutex_semaphore(void)
     sem = xSemaphoreCreateMutex();
     xSemaphoreGive(sem);
 
-    statQ = xQueueCreate(3, sizeof(uint8_t));
-    
+
     TaskArgs args = {
         .sem = sem,
         .t1_fn = task1,
@@ -101,14 +109,13 @@ void mutex_semaphore(void)
         .t2_priority = tskIDLE_PRIORITY + 1,
         .t3_fn = task3,
         .t3_priority = tskIDLE_PRIORITY + 2,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
 
     run_test((void*)&args, &output);
 
-    TEST_ASSERT_GREATER_THAN(output.t2, output.t1); // I think we'd expect t1 to be the fastest here bc mutex inherits priority,
+    TEST_ASSERT_GREATER_THAN(output.t1, output.t2); // I think we'd expect t1 to be the fastest here bc mutex inherits priority,
     TEST_ASSERT_GREATER_THAN(output.t3, output.t1); // but can't seem to get it shorter than t2
 
     vSemaphoreDelete(sem);
@@ -116,14 +123,11 @@ void mutex_semaphore(void)
 
 void same_busy_busy(void)
 {
-    statQ = xQueueCreate(2, sizeof(uint8_t));
-
     TaskArgs args = {
         .t1_fn = busy_busy,
         .t1_priority = tskIDLE_PRIORITY + 1,
         .t2_fn = busy_busy,
         .t2_priority = tskIDLE_PRIORITY + 1,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
@@ -134,14 +138,11 @@ void same_busy_busy(void)
 
 void same_yield_yield(void)
 {
-    statQ = xQueueCreate(2, sizeof(uint8_t));
-
     TaskArgs args = {
         .t1_fn = busy_yield,
         .t1_priority = tskIDLE_PRIORITY + 2,
         .t2_fn = busy_yield,
         .t2_priority = tskIDLE_PRIORITY + 2,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
@@ -153,14 +154,12 @@ void same_yield_yield(void)
 
 void same_busy_yield(void)
 {
-    statQ = xQueueCreate(2, sizeof(uint8_t));
 
     TaskArgs args = {
         .t1_fn = busy_busy,
         .t1_priority = tskIDLE_PRIORITY + 2,
         .t2_fn = busy_yield,
         .t2_priority = tskIDLE_PRIORITY + 2,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
@@ -171,14 +170,11 @@ void same_busy_yield(void)
 
 void diff_busy_high(void) // Higher priority starts first
 {
-    statQ = xQueueCreate(2, sizeof(uint8_t));
-
     TaskArgs args = {
         .t1_fn = busy_busy,
         .t1_priority = tskIDLE_PRIORITY + 2,
         .t2_fn = busy_busy,
         .t2_priority = tskIDLE_PRIORITY + 1,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
@@ -189,14 +185,11 @@ void diff_busy_high(void) // Higher priority starts first
 
 void diff_busy_low(void)  // Lower priority starts first
 {
-    statQ = xQueueCreate(2, sizeof(uint8_t));
-
     TaskArgs args = {
         .t1_fn = busy_busy,
         .t1_priority = tskIDLE_PRIORITY + 1,
         .t2_fn = busy_busy,
         .t2_priority = tskIDLE_PRIORITY + 2,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
@@ -207,14 +200,11 @@ void diff_busy_low(void)  // Lower priority starts first
 
 void diff_busy_yield(void)
 {
-    statQ = xQueueCreate(2, sizeof(uint8_t));
-
     TaskArgs args = {
         .t1_fn = busy_busy,
         .t1_priority = tskIDLE_PRIORITY + 1,
         .t2_fn = busy_yield,
         .t2_priority = tskIDLE_PRIORITY + 2,
-        .statQ = statQ,
     };
 
     TaskInfo output = {};
@@ -227,11 +217,15 @@ void test_task(__unused void *params) {
     
     UNITY_BEGIN();
     // Run Tests
-    // Activity 0
+    printf("Activity 0\n");
+    
     RUN_TEST(priority_inversion);
-    // Activity 1
+    
+    printf("Activity 1\n");
+    
     RUN_TEST(mutex_semaphore);
-    // Activity 2
+    
+    printf("Activity 2\n");
     // -- Same Priority --
     // Both busy_busy
     RUN_TEST(same_busy_busy);

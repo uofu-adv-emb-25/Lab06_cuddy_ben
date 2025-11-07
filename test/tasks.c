@@ -4,50 +4,53 @@
 
 void task1(void *args)
 {
-    // printf("task1E\n");
-    vTaskDelay(pdMS_TO_TICKS(5));
+    
     TaskArgs *task_args = (TaskArgs*) args;
     xSemaphoreTake(task_args->sem, portMAX_DELAY);
-    // printf("task1\n");
-    // printf("task1F\n");
-    for(;;)
+
+    volatile int counter = 0;
+    for(int i = 0; i < 10000000; i++)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        counter++;
     }
+
+    vTaskDelete(NULL);
 }
 
 void task2(void *args)
 {
-    // printf("task2E\n");
     TaskArgs *task_args = (TaskArgs*) args;
     xSemaphoreTake(task_args->sem, portMAX_DELAY);
-    // printf("task2\n");
-    // printf("task2F\n");
-    for(;;)
+    
+    volatile int counter = 0;
+    for(int i = 0; i < 10000000; i++)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        counter++;
     }
+
+    vTaskDelete(NULL);
 }
 
 void task3(void *args)
 {
-    // printf("task3E\n");
     TaskArgs *task_args = (TaskArgs*) args;
     xSemaphoreTake(task_args->sem, portMAX_DELAY);
-    // printf("task3\n");
-    // printf("task3F\n");
-    for(;;)
+
+    volatile int counter = 0;
+    for(int i = 0; i < 10000000; i++)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        counter++;
     }
+
+    vTaskDelete(NULL);
 }
 
 void busy_busy(void *args){
-    for (int i = 0; ;i++);
+    for (;;);
 }
 
 void busy_yield(void *args){
-    for (int i = 0; ;i++){
+    for (;;){
         taskYIELD();
     }
 }

@@ -4,7 +4,7 @@
 #include <pico/time.h>
 #include <FreeRTOS.h>
 #include <stdio.h>
-#include <semphr.h>
+#include <semphr.h> 
 
 void task1(void *args);
 void task2(void *args);
@@ -24,8 +24,6 @@ typedef struct{
 
     TaskFunction_t t3_fn;
     UBaseType_t t3_priority;
-
-    QueueHandle_t statQ;
 } TaskArgs;
 
 typedef struct 
