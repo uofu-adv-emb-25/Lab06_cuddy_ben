@@ -115,8 +115,8 @@ void mutex_semaphore(void)
 
     run_test((void*)&args, &output);
 
-    TEST_ASSERT_GREATER_THAN(output.t1, output.t2); // I think we'd expect t1 to be the fastest here bc mutex inherits priority,
-    TEST_ASSERT_GREATER_THAN(output.t3, output.t1); // but can't seem to get it shorter than t2
+    TEST_ASSERT_GREATER_THAN(output.t1, output.t2); 
+    TEST_ASSERT_GREATER_THAN(output.t3, output.t1); 
 
     vSemaphoreDelete(sem);
 }
